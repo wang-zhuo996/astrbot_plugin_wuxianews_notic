@@ -43,7 +43,7 @@ class WuxiaNewsNotic(Star):
                     # 等待事件，但有超时
                     await asyncio.wait_for(
                         self._task_event.wait(), 
-                        timeout=self.config.notic.interval - 10
+                        timeout=self.config.notic.interval - 30
                     )
                     # 如果到达这里，说明事件被设置了
                     self.logger.info("事件被触发，退出循环")
