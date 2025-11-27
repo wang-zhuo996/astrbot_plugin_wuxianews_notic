@@ -229,8 +229,8 @@ async def access_wuxiaofficial_web(
                 break
         cnts += 1
 
-    await asyncio.gather(*list(map(lambda x: x.wait_task, newlist_objs)))
     if session:
+        await asyncio.gather(*list(map(lambda x: x.wait_task, newlist_objs)))
         await session.close()
     return newlist_objs
 
