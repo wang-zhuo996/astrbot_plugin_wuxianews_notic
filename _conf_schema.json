@@ -1,0 +1,38 @@
+{
+    "subscribe": {
+        "type": "list",
+        "description": "订阅列表",
+        "hint": "请输入要订阅的频道ID，多个频道ID请用逗号分隔"
+    },
+    "notic": {
+        "type": "object",
+        "description": "通知设置",
+        "items": {
+            "enable": {
+                "type": "bool",
+                "description": "是否启用通知",
+                "default": false
+            },
+            "interval": {
+                "type": "int",
+                "description": "通知间隔（秒）",
+                "default": 300
+            },
+            "type": {
+                "type": "string",
+                "description": "通知类型",
+                "options": [
+                    "url",
+                    "content"
+                ],
+                "default": "url",
+                "hint": "url: 只发送链接，content: 发送完整内容"
+            }
+        }
+    },
+    "news_cache": {
+        "type": "bool",
+        "description": "是否启用缓存",
+        "default": false
+    }
+}

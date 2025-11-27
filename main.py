@@ -1,6 +1,6 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult,MessageChain
 from astrbot.api.star import Context, Star, register,StarTools
-from astrbot.api import logger, message_components as mc
+from astrbot.api import logger, message_components as mc ,AstrBotConfig
 from astrbot.core.star.star_handler import star_handlers_registry
 from astrbot.core.star.star import star_map ,star_registry
 
@@ -9,25 +9,26 @@ from aiohttp import ClientSession
 from typing import cast
 
 from .wuxia_news import NewsContent, get_notic_news,access_wuxiaofficial_web
-from .config import Config
+from .config import  Config
 
 
 
 
 @register("astrbot_plugin_wuxianews_notic", "", "天刀公告获取插件", "1.0.0")
 class WuxiaNewsNotic(Star):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context , config:AstrBotConfig):
         super().__init__(context)
         self._task_event: asyncio.Event = asyncio.Event()
         self._task: asyncio.Task | None = None
         self._unified_msg_origin = {}
         self.logger = logger
-
+        # self.ori_config = config
+        self.config =cast(Config, config)
+        
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
         self.logger.info("天刀公告插件初始化")
-        self.config = Config(StarTools.get_data_dir("wuxia"))
-        await self.config.load_config()
+
         self._unified_msg_origin = { qq_group_id:f"2200455428:GroupMessage:{qq_group_id}" for qq_group_id in self.config.subscribe}
         async def func():
             while True:
@@ -122,5 +123,5 @@ class WuxiaNewsNotic(Star):
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
         self._task_event.set()
-        await self.config.save_config()
+        self.config.save_config()
 
