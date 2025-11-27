@@ -32,11 +32,12 @@ class WuxiaNewsNotic(Star):
             while True:
                 # 业务逻辑
                 if self.config.notic.enable:
+                    self.logger.info("开始等待间隔30s ...")
                     await asyncio.sleep(30)
-                    # self.logger.info("开始获取天刀公告")
                     await get_notic_news(self.notic_return_msg)
                 # 在循环中，我们可以等待一个很短的时间，同时也可以等待停止事件
                 # 这里我们使用asyncio.wait同时等待停止事件和睡眠，以便快速响应停止事件
+                self.logger.info(f"开始等待间隔{self.config.notic.interval - 30}s ...")
                 done, pending = await asyncio.wait(
                     [self._task_event.wait(), asyncio.sleep(self.config.notic.interval - 30)],
                     return_when=asyncio.FIRST_COMPLETED,
