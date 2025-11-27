@@ -27,6 +27,7 @@ class WuxiaNewsNotic(Star):
         self.logger.info("天刀公告插件初始化")
         self.config = Config(StarTools.get_data_dir("wuxia"))
         await self.config.load_config()
+        self._unified_msg_origin = { qq_group_id:f"2200455428:GroupMessage:{qq_group_id}" for qq_group_id in self.config.subscribe}
         async def func():
             while True:
                 # 业务逻辑
@@ -37,7 +38,7 @@ class WuxiaNewsNotic(Star):
                 # 在循环中，我们可以等待一个很短的时间，同时也可以等待停止事件
                 # 这里我们使用asyncio.wait同时等待停止事件和睡眠，以便快速响应停止事件
                 done, pending = await asyncio.wait(
-                    [self._task_event.wait(), asyncio.sleep(self.config.notic.interval)],
+                    [self._task_event.wait(), asyncio.sleep(self.config.notic.interval - 30)],
                     return_when=asyncio.FIRST_COMPLETED,
                 )
                 # 如果停止事件被设置，则退出循环
@@ -45,6 +46,7 @@ class WuxiaNewsNotic(Star):
                     break
 
         self._task = asyncio.create_task(func())
+        self.logger.info("天刀公告插件初始化完成")
         pass
 
     async def notic_return_msg(self, news: NewsContent):
@@ -93,10 +95,12 @@ class WuxiaNewsNotic(Star):
         group_id = event.get_group_id()
         if group_id in self._unified_msg_origin:
             self._unified_msg_origin.pop(group_id)
+            self.config.subscribe.remove(group_id)
             self.logger.info(f"取消订阅uid：{group_id},{umo}")
             yield event.plain_result("取消订阅成功！")
         else:
             self._unified_msg_origin.update({group_id: umo})
+            self.config.subscribe.append(group_id)
             self.logger.info(f"添加订阅uid：{group_id},{umo}")
             yield event.plain_result("订阅成功！")
         
@@ -104,4 +108,5 @@ class WuxiaNewsNotic(Star):
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
         self._task_event.set()
+        await self.config.save_config()
 
