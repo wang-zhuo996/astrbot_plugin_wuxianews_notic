@@ -304,11 +304,11 @@ async def load_lasts_news_jsonif():
 
 
 async def get_notic_news(callback: Callable[[NewsContent], CoroutineType]):
-    logger.info("开始获取最新公告 ...")
+    # logger.info("开始获取最新公告 ...")
     lasts_news = await access_wuxiaofficial_web(list_index=0)
     lasts_new = lasts_news[0]
     if await compare_json_news_and_update(lasts_new):
-        logger.info("没有发现最新公告")
+        # logger.info("没有发现最新公告")
         return None
     else:
         logger.info(f"发现最新公告: {lasts_new.title}")

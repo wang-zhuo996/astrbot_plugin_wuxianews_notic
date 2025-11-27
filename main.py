@@ -33,12 +33,12 @@ class WuxiaNewsNotic(Star):
             while True:
                 # 业务逻辑
                 if self.config.notic.enable:
-                    self.logger.info("开始等待间隔30s ...")
+                    # self.logger.info("开始等待间隔30s ...")
                     await asyncio.sleep(30)
                     await get_notic_news(self.notic_return_msg)
                 # 在循环中，我们可以等待一个很短的时间，同时也可以等待停止事件
                 # 这里我们使用asyncio.wait同时等待停止事件和睡眠，以便快速响应停止事件
-                self.logger.info(f"开始等待间隔{self.config.notic.interval - 30}s ...")
+                # self.logger.info(f"开始等待间隔{self.config.notic.interval - 30}s ...")
                 try:
                     # 等待事件，但有超时
                     await asyncio.wait_for(
@@ -46,15 +46,15 @@ class WuxiaNewsNotic(Star):
                         timeout=self.config.notic.interval - 30
                     )
                     # 如果到达这里，说明事件被设置了
-                    self.logger.info("事件被触发，退出循环")
+                    # self.logger.info("事件被触发，退出循环")
                     break
                     
                 except asyncio.TimeoutError:
                     # 超时是正常的，继续下一轮循环
-                    self.logger.info("等待超时，继续下一轮循环")
+                    # self.logger.info("等待超时，继续下一轮循环")
                     continue
                 except asyncio.CancelledError:
-                    self.logger.info("任务被取消")
+                    # self.logger.info("任务被取消")
                     break
 
         self._task = asyncio.create_task(func())
