@@ -48,8 +48,8 @@ class WuxiaNewsNotic(Star):
                 if self._task_event.is_set():
                     break
                 else:
-                    self._task_event.set()
-                    self._task_event.clear()
+                    del self._task_event
+                    self._task_event = asyncio.Event()
 
         self._task = asyncio.create_task(func())
         self.logger.info("天刀公告插件初始化完成")
