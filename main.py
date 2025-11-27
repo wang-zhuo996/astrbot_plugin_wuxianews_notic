@@ -5,6 +5,7 @@ from astrbot.core.star.star_handler import star_handlers_registry
 from astrbot.core.star.star import star_map ,star_registry
 
 import asyncio
+from aiohttp import ClientSession
 from typing import cast
 
 from .wuxia_news import NewsContent, get_notic_news,access_wuxiaofficial_web
@@ -59,6 +60,8 @@ class WuxiaNewsNotic(Star):
                     raise ImportError("未加载插件：data.plugins.astrbot_plugin_nobrowser_markdown_to_pic.main")
                 from data.plugins.astrbot_plugin_nobrowser_markdown_to_pic.main import MyPlugin as Mk2Img
                 if isinstance(mk2img_instanc_metadata.star_cls, Mk2Img):
+                    async with ClientSession() as session:
+                        await news.get_content(session)
                     mk2img_instanc = cast(Mk2Img, mk2img_instanc_metadata.star_cls)
                     img = await mk2img_instanc._render_markdown_to_image(news.content)
                     img_path = await mk2img_instanc._save_temp_image(img)
