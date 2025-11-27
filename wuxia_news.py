@@ -189,7 +189,7 @@ async def wuxia_get_newslists_index() -> int:
 
 
 async def access_wuxiaofficial_web(
-    page: NewsListIndex = NewsListIndex(1), list_index: int | None = None
+    page: NewsListIndex = NewsListIndex(1), list_index: int | None = None,content_type: str = 'url'
 ) -> list[NewsContent]:
 
     async with aiohttp.ClientSession() as session:
@@ -202,7 +202,10 @@ async def access_wuxiaofficial_web(
     if newlist is None:
         raise ValueError("未找到新闻列表")
     newlist_objs: list[NewsContent] = []
-    session = aiohttp.ClientSession()
+    if content_type == 'url':
+        session = None
+    elif content_type == 'content':
+        session = aiohttp.ClientSession()
     cnts = 0
     for item in newlist:
         title_ele = item.find("a", {"class": "cltit"})
@@ -227,7 +230,8 @@ async def access_wuxiaofficial_web(
         cnts += 1
 
     await asyncio.gather(*list(map(lambda x: x.wait_task, newlist_objs)))
-    await session.close()
+    if session:
+        await session.close()
     return newlist_objs
 
 

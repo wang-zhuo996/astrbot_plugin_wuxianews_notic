@@ -79,12 +79,12 @@ class WuxiaNewsNotic(Star):
         logger.info(event.message_str)
         msg_chain = [
             mc.At(qq=event.get_sender_id()),
-            mc.Plain("最近10条公告如下："),
+            mc.Plain("最近10条公告如下：\n"),
             
         ]
         news_lists  = await access_wuxiaofficial_web()
         for news in news_lists[:10]:
-            msg_chain.append(mc.Plain(f"{news.title} - {news.time} - {news.url}"))
+            msg_chain.append(mc.Plain(f"{news.title} - {news.time} - {news.url}\n"))
                
         yield event.chain_result(msg_chain)
 
