@@ -78,15 +78,14 @@ class WuxiaNewsNotic(Star):
         # )  # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info(event.message_str)
         msg_chain = [
-            mc.At(qq=event.get_sender_id()),
-            mc.Plain("最近10条公告如下：\n"),
-            
+            "\n"
+            "最近10条公告如下：\n",
         ]
         news_lists  = await access_wuxiaofficial_web()
         for news in news_lists[:10]:
-            msg_chain.append(mc.Plain(f"{news.title} - {news.time} - {news.url}\n"))
+            msg_chain.append(f"{news.title} - {news.time} - {news.url}\n")
                
-        yield event.chain_result(msg_chain)
+        yield event.plain_result("".join(msg_chain))
 
     @filter.command("订阅")
     async def set_subscription(self, event: AstrMessageEvent):
