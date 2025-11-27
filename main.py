@@ -39,17 +39,23 @@ class WuxiaNewsNotic(Star):
                 # 在循环中，我们可以等待一个很短的时间，同时也可以等待停止事件
                 # 这里我们使用asyncio.wait同时等待停止事件和睡眠，以便快速响应停止事件
                 self.logger.info(f"开始等待间隔{self.config.notic.interval - 30}s ...")
-                done, pending = await asyncio.wait(
-                    [self._task_event.wait(), asyncio.sleep(self.config.notic.interval - 10)],
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                # 如果停止事件被设置，则退出循环
-                self.logger.info(f"等待结束，event状态{self._task_event.is_set()}")
-                if self._task_event.is_set():
+                try:
+                    # 等待事件，但有超时
+                    await asyncio.wait_for(
+                        self._task_event.wait(), 
+                        timeout=self.config.notic.interval - 10
+                    )
+                    # 如果到达这里，说明事件被设置了
+                    self.logger.info("事件被触发，退出循环")
                     break
-                else:
-                    del self._task_event
-                    self._task_event = asyncio.Event()
+                    
+                except asyncio.TimeoutError:
+                    # 超时是正常的，继续下一轮循环
+                    self.logger.info("等待超时，继续下一轮循环")
+                    continue
+                except asyncio.CancelledError:
+                    self.logger.info("任务被取消")
+                    break
 
         self._task = asyncio.create_task(func())
         self.logger.info("天刀公告插件初始化完成")
