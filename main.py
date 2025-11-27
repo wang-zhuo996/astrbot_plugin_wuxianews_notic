@@ -44,8 +44,12 @@ class WuxiaNewsNotic(Star):
                     return_when=asyncio.FIRST_COMPLETED,
                 )
                 # 如果停止事件被设置，则退出循环
+                self.logger.info(f"等待结束，event状态{self._task_event.is_set()}")
                 if self._task_event.is_set():
                     break
+                else:
+                    self._task_event.set()
+                    self._task_event.clear()
 
         self._task = asyncio.create_task(func())
         self.logger.info("天刀公告插件初始化完成")
