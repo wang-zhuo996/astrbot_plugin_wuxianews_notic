@@ -9,7 +9,7 @@ from aiohttp import ClientSession
 from typing import cast
 
 from .wuxia_news import NewsContent, get_notic_news,access_wuxiaofficial_web
-from .config import  Config
+from .config import  Config,Notic
 
 
 
@@ -24,6 +24,7 @@ class WuxiaNewsNotic(Star):
         self.logger = logger
         # self.ori_config = config
         self.config =cast(Config, config)
+        self.conf_notic = Notic.model_validate(self.config.notic)
         
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -33,7 +34,7 @@ class WuxiaNewsNotic(Star):
         async def func():
             while True:
                 # 业务逻辑
-                if self.config.notic.enable:
+                if self.conf_notic.enable:
                     # self.logger.info("开始等待间隔30s ...")
                     await asyncio.sleep(30)
                     await get_notic_news(self.notic_return_msg)
@@ -44,7 +45,7 @@ class WuxiaNewsNotic(Star):
                     # 等待事件，但有超时
                     await asyncio.wait_for(
                         self._task_event.wait(), 
-                        timeout=self.config.notic.interval - 30
+                        timeout=self.conf_notic.interval - 30
                     )
                     # 如果到达这里，说明事件被设置了
                     # self.logger.info("事件被触发，退出循环")
@@ -63,7 +64,7 @@ class WuxiaNewsNotic(Star):
         pass
 
     async def notic_return_msg(self, news: NewsContent):
-        match self.config.notic.type :
+        match self.conf_notic.type :
             case "content":
                 # 获取插件实例
                 mk2img_instanc_metadata = star_map.get("data.plugins.astrbot_plugin_nobrowser_markdown_to_pic.main",None)
