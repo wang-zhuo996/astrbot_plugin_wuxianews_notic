@@ -201,6 +201,7 @@ async def access_wuxiaofficial_web(
     newlist = t.find_all("li") if (t:= soup.find("ul", attrs={"class": "newslists"})) else None
     if newlist is None:
         raise ValueError("未找到新闻列表")
+    logger.debug(newlist.text)
     newlist_objs: list[NewsContent] = []
     if content_type == 'url':
         session = None
@@ -222,6 +223,7 @@ async def access_wuxiaofficial_web(
         if list_index is None:
             newlist_objs.append(new_obj)
             logger.info(f"{new_obj.title} 已添加")
+            logger.debug(new_obj.__dict__)
         else:
             if list_index == cnts:
                 newlist_objs.append(new_obj)
@@ -231,6 +233,7 @@ async def access_wuxiaofficial_web(
 
     if session:
         await asyncio.gather(*list(map(lambda x: x.wait_task, newlist_objs)))
+        logger.debug("等待完成")
         await session.close()
     return newlist_objs
 
@@ -284,7 +287,7 @@ async def compare_json_news_and_update(obj: NewsContent):
             obj_md5 = md5(obj.content.encode("utf-8"))
             if obj_md5.hexdigest() == jsonif.content_md5:
                 return True
-            
+    await asyncio.sleep(3)
     async with aiofiles.open(lasts_info_file, "w", encoding="utf-8") as f:
         will_write_news = NewsJsonIf(
             tag=obj.tag,
