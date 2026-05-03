@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.2] - 2026-05-03
+
+### Changed
+- **Markdown 渲染改用 pillowmd**：不再依赖 `astrbot_plugin_nobrowser_markdown_to_pic` 插件的私有方法 `_render_markdown_to_image`，改用 `pillowmd.MdToImage` 直接渲染，移除对外部插件内部实现的耦合。
+- **消息发送改用 `send_message_by_id`**：移除手动构造 umo 字符串的 `_unified_msg_origin` 字典，改为直接使用群号通过 `StarTools.send_message_by_id(type="GroupMessage", id=...)` 发送消息，更简洁且兼容不同平台适配器。
+- **缓存结构优化**：`_cache_payload` 从 `list[dict]` 改为 `list[NewsJsonIf]`，利用 dataclass 的 `__eq__` 方法直接进行对象比较，移除冗余的 `_cache_keys` 集合和手动 dict 构造。
+- **新增图片 URL 转换**：`convert_img_url()` 函数处理公告内容中的相对路径图片，补全为绝对 URL。
+- **兼容性调整**：`astrbot_version` 要求从 `>=4.23` 放宽至 `>=4.0`，仅依赖框架基础 API。
+
+### Fixed
+- **修复 `set_subscription` 中 `_unified_msg_origin` 残留引用**：订阅管理不再维护已移除的 `_unified_msg_origin` 字典。
+
 ## [1.0.1] - 2026-05-03
 
 ### Fixed
