@@ -7,7 +7,7 @@ from astrbot.api import logger, AstrBotConfig
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
 from astrbot.api.star import Context, Star, StarTools, register
 from astrbot.core.star.star import star_map
-
+from astrbot.core.platform.message_session import MessageSesion
 import pillowmd
 
 from .config import Config, Notic
@@ -37,7 +37,7 @@ class WuxiaNewsNotic(Star):
         await init_news_cache()
 
         self._unified_msg_origin = {
-            qq_group_id: f"2200455428:GroupMessage:{qq_group_id}"
+            qq_group_id: f"{MessageSesion.platform_name}:GroupMessage:{qq_group_id}"
             for qq_group_id in self.config.subscribe
         }
 
