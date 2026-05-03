@@ -83,8 +83,6 @@ class WuxiaNewsNotic(Star):
                 )
 
                 if isinstance(mk2img_instanc_metadata.star_cls, Mk2Img):
-                    async with ClientSession() as session:
-                        await news.get_content(session)
                     mk2img_instanc = cast(Mk2Img, mk2img_instanc_metadata.star_cls)
                     img = await pillowmd.MdToImage(news.content, useImageUrl=True)
                     img_path = await mk2img_instanc._save_temp_image(img)

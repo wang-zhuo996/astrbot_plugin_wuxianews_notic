@@ -9,7 +9,7 @@ import aiohttp
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from hashlib import md5
 from pathlib import Path
 from typing import Awaitable, Callable, Protocol, cast
@@ -18,7 +18,7 @@ from astrbot import logger
 from astrbot.api.star import StarTools
 
 try:
-    from html_to_markdown import convert,ConversionResult
+    from html_to_markdown import convert, ConversionResult
 except ImportError:
     logger.error("html_to_markdown 未安装，请使用 pip install html_to_markdown 安装")
 
@@ -56,6 +56,7 @@ class NewsContent:
 
     def add_task(self, coroutine):
         self.wait_task = asyncio.create_task(coroutine)
+
         # self.__class__._tasks.append(self.wait_task)
 
     async def get_content(self, session: aiohttp.ClientSession):
@@ -157,10 +158,10 @@ async def wuxia_get_newslists_index() -> int:
     if historical_accumulation_index:
         for child in historical_accumulation_index.children:
             if child.text == "下一页 >":
-                next_page_element = cast(Tag,child)
+                next_page_element = cast(Tag, child)
                 break
     historical_index = (
-        cast(str,next_page_element.attrs.get("href"))
+        cast(str, next_page_element.attrs.get("href"))
         .removeprefix(WUXIA_OFFICAL_NEWSLISTS_PREFIXX.removeprefix(WUXIA_OFFICAL_URL))
         .removesuffix(".shtml")
     )
@@ -169,7 +170,9 @@ async def wuxia_get_newslists_index() -> int:
 
 
 async def access_wuxiaofficial_web(
-    page: NewsListIndex = NewsListIndex(1), list_index: int | None = None,content_type: str = 'url'
+    page: NewsListIndex = NewsListIndex(1),
+    list_index: int | None = None,
+    content_type: str = "url",
 ) -> list[NewsContent]:
 
     async with aiohttp.ClientSession() as session:
@@ -178,14 +181,18 @@ async def access_wuxiaofficial_web(
         ) as resp:
             # res = requests.get(WUXIA_OFFICAL_NEWSLISTS_URL.format(page), headers=HEAD)
             soup = BeautifulSoup(await resp.read(), "lxml")
-    newlist = t.find_all("li") if (t:= soup.find("ul", attrs={"class": "newslists"})) else None
+    newlist = (
+        t.find_all("li")
+        if (t := soup.find("ul", attrs={"class": "newslists"}))
+        else None
+    )
     if newlist is None:
         raise ValueError("未找到新闻列表")
     logger.debug(newlist)
     newlist_objs: list[NewsContent] = []
-    if content_type == 'url':
+    if content_type == "url":
         session = None
-    elif content_type == 'content':
+    elif content_type == "content":
         session = aiohttp.ClientSession()
     cnts = 0
     for item in newlist:
@@ -217,10 +224,12 @@ async def access_wuxiaofficial_web(
         await session.close()
     return newlist_objs
 
-def convert_img_url(res:ConversionResult) -> str:
+
+def convert_img_url(res: ConversionResult) -> str:
     if res.content:
         return res.content.replace("![](//", "![](https://")
-    return ''
+    return ""
+
 
 def convert_star(linetext: str):
     match_star = re.finditer(star_compare_rule, linetext)
@@ -253,8 +262,7 @@ class NewsJsonIf:
 # 内存缓存：避免频繁读写磁盘，仅在初始化/卸载/定期检查点写文件
 # ---------------------------------------------------------------------------
 _FLUSH_ON_NO_DIFF_COUNT: int = 10
-_cache_keys: set[str] | None = None
-_cache_payload: list[dict] | None = None
+_cache_payload: list[NewsJsonIf] | None = None
 _cache_no_diff_count: int = 0
 
 
@@ -271,12 +279,11 @@ def _make_json_key(news: _HasTagTitleTime) -> str:
 
 async def init_news_cache():
     """插件启动时调用：读取本地 JSON 文件并加载到内存缓存。"""
-    global _cache_keys, _cache_payload, _cache_no_diff_count
+    global _cache_payload, _cache_no_diff_count
 
     lasts_info_file = os.path.join(
         StarTools.get_data_dir("wuxia"), "wuxia_news_lastsif.json"
     )
-    _cache_keys = set()
     _cache_payload = []
     _cache_no_diff_count = 0
 
@@ -284,13 +291,11 @@ async def init_news_cache():
         async with aiofiles.open(lasts_info_file, "r", encoding="utf-8") as f:
             try:
                 stored_list: list[dict] = json.loads(await f.read())
-                _cache_keys = {
-                    _make_json_key(NewsJsonIf(**item)) for item in stored_list
-                }
-                _cache_payload = stored_list
-                logger.info(f"公告缓存已加载，共 {len(_cache_keys)} 条记录")
-            except (json.JSONDecodeError, KeyError):
+                _cache_payload = [NewsJsonIf(**item) for item in stored_list]
+                logger.info(f"公告缓存已加载，共 {len(_cache_payload)} 条记录")
+            except (json.JSONDecodeError, KeyError) as e:
                 logger.warning("本地公告缓存解析失败，将视为全新获取")
+                logger.debug(f"解析错误详情: {e}")
     else:
         logger.info("公告缓存文件不存在，初始化为空")
 
@@ -303,9 +308,9 @@ async def flush_news_cache():
         StarTools.get_data_dir("wuxia"), "wuxia_news_lastsif.json"
     )
     if _cache_payload is not None:
-        async with aiofiles.open(lasts_info_file, "w", encoding="utf-8") as f:
-            await f.write(json.dumps(_cache_payload, ensure_ascii=False))
-        logger.info("公告缓存已写入文件")
+        with open(lasts_info_file, "w", encoding="utf-8") as f:
+            json.dump([asdict(item) for item in _cache_payload], f)
+            logger.info("公告缓存已写入文件")
     _cache_no_diff_count = 0
 
 
@@ -315,28 +320,37 @@ async def get_new_news(news_list: list[NewsContent]) -> list[NewsContent]:
     所有对比操作在内存中完成；仅在无差异累积到阈值或外部显式调用
     flush_news_cache() 时才写入文件。
     """
-    global _cache_keys, _cache_payload, _cache_no_diff_count
+    global _cache_payload, _cache_no_diff_count
 
-    if _cache_keys is None:
+    if _cache_payload is None:
         raise RuntimeError("公告缓存尚未初始化，请先调用 init_news_cache()")
 
     # 筛选新新闻
-    new_items: list[NewsContent] = []
-    for news in news_list:
-        if _make_json_key(news) not in _cache_keys:
-            new_items.append(news)
 
-    # 用最新拉取的前10条更新缓存
-    top10 = news_list[:10]
-    _cache_keys = {_make_json_key(n) for n in top10}
+    new_items = [
+        n
+        for n in news_list[:10]
+        if NewsJsonIf(
+            **{
+                "tag": n.tag,
+                "title": n.title,
+                "time": n.time,
+                "content_md5": md5(n.content.encode()).hexdigest() if n.content else "",
+            }
+        )
+        not in _cache_payload
+    ]
+    
     _cache_payload = [
-        {
-            "tag": n.tag,
-            "title": n.title,
-            "time": n.time,
-            "content_md5": md5(n.content.encode()).hexdigest() if n.content else "",
-        }
-        for n in top10
+        NewsJsonIf(
+            **{
+                "tag": n.tag,
+                "title": n.title,
+                "time": n.time,
+                "content_md5": md5(n.content.encode()).hexdigest() if n.content else "",
+            }
+        )
+        for n in news_list[:10]
     ]
 
     if new_items:
@@ -345,9 +359,7 @@ async def get_new_news(news_list: list[NewsContent]) -> list[NewsContent]:
         _cache_no_diff_count += 1
         if _cache_no_diff_count >= _FLUSH_ON_NO_DIFF_COUNT:
             await flush_news_cache()
-            logger.info(
-                f"连续 {_FLUSH_ON_NO_DIFF_COUNT} 次无新公告，已自动写入缓存"
-            )
+            logger.info(f"连续 {_FLUSH_ON_NO_DIFF_COUNT} 次无新公告，已自动写入缓存")
 
     return new_items
 
@@ -366,7 +378,7 @@ async def load_lasts_news_jsonif() -> list[NewsJsonIf]:
 async def get_notic_news(callback: Callable[[NewsContent], Awaitable[None]]):
     """获取最新公告列表，对比本地缓存后，对每条新公告调用回调通知。"""
     logger.info("开始获取最新公告 ...")
-    lasts_news = await access_wuxiaofficial_web()
+    lasts_news = await access_wuxiaofficial_web(content_type="content")
     top10 = lasts_news[:10]
     new_news = await get_new_news(top10)
 
