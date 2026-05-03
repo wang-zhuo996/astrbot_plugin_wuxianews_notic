@@ -264,6 +264,7 @@ class NewsJsonIf:
 _FLUSH_ON_NO_DIFF_COUNT: int = 10
 _cache_payload: list[NewsJsonIf] | None = None
 _cache_no_diff_count: int = 0
+_get_notic_lock = asyncio.Lock()
 
 
 class _HasTagTitleTime(Protocol):
@@ -377,19 +378,20 @@ async def load_lasts_news_jsonif() -> list[NewsJsonIf]:
 
 async def get_notic_news(callback: Callable[[NewsContent], Awaitable[None]]):
     """获取最新公告列表，对比本地缓存后，对每条新公告调用回调通知。"""
-    logger.info("开始获取最新公告 ...")
-    lasts_news = await access_wuxiaofficial_web(content_type="content")
-    top10 = lasts_news[:10]
-    new_news = await get_new_news(top10)
+    async with _get_notic_lock:
+        logger.info("开始获取最新公告 ...")
+        lasts_news = await access_wuxiaofficial_web(content_type="content")
+        top10 = lasts_news[:10]
+        new_news = await get_new_news(top10)
 
-    if not new_news:
-        logger.info("没有发现最新公告")
-        return
+        if not new_news:
+            logger.info("没有发现最新公告")
+            return
 
-    logger.info(f"发现 {len(new_news)} 条最新公告")
-    for news in new_news:
-        logger.info(f"  - {news.title} ({news.time})")
-        await callback(news)
+        logger.info(f"发现 {len(new_news)} 条最新公告")
+        for news in new_news:
+            logger.info(f"  - {news.title} ({news.time})")
+            await callback(news)
 
 
 async def main():
