@@ -4,4 +4,4 @@ desc: 获取天刀公告并主动发送通知的插件。 # 插件简短描述
 version: v1.0.1 # 插件版本号。格式：v1.1.1 或者 v1.1
 author: wang-zhuo996 # 作者
 repo: https://github.com/wang-zhuo996/astrbot_plugin_wuxianews_notic # 插件的仓库地址
-astrbot_version: ">=4.23"
+astrbot_version: ">=4.0"
