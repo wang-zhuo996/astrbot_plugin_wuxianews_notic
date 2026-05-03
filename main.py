@@ -37,7 +37,7 @@ class WuxiaNewsNotic(Star):
         await init_news_cache()
 
         self._unified_msg_origin = {
-            qq_group_id: f"{MessageSesion.platform_name}:GroupMessage:{qq_group_id}"
+            qq_group_id: f"{MessageSesion.platform_id}:GroupMessage:{qq_group_id}"
             for qq_group_id in self.config.subscribe
         }
 
