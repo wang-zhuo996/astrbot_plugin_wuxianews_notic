@@ -43,7 +43,6 @@ class NewsContent:
         tag: str = "",
         time: str = "",
         content="",
-        session: aiohttp.ClientSession | None = None,
     ) -> None:
         self.url = url
         self.title = title
@@ -51,13 +50,6 @@ class NewsContent:
         self.time = time
         self.content = content
         self.logger = logger
-        if session:
-            self.add_task(self.get_content(session))
-
-    def add_task(self, coroutine):
-        self.wait_task = asyncio.create_task(coroutine)
-
-        # self.__class__._tasks.append(self.wait_task)
 
     async def get_content(self, session: aiohttp.ClientSession):
         # await asyncio.sleep(10)
@@ -199,14 +191,14 @@ async def access_wuxiaofficial_web(
         title_ele = item.find("a", {"class": "cltit"})
         tag_ele = item.find("a", {"class": "cltag"})
         time_ele = item.find("span", {"class": "cltime"})
-        if time_ele and title_ele and tag_ele:
-            new_obj = NewsContent(
-                url=WUXIA_OFFICAL_URL + str(title_ele.attrs.get("href")),
-                title=title_ele.text,
-                tag=tag_ele.text,
-                time=time_ele.text,
-                session=session,
-            )
+        if not (time_ele and title_ele and tag_ele):
+            continue
+        new_obj = NewsContent(
+            url=WUXIA_OFFICAL_URL + str(title_ele.attrs.get("href")),
+            title=title_ele.text,
+            tag=tag_ele.text,
+            time=time_ele.text,
+        )
         if list_index is None:
             newlist_objs.append(new_obj)
             logger.info(f"{new_obj.title} 已添加")
@@ -219,9 +211,12 @@ async def access_wuxiaofficial_web(
         cnts += 1
 
     if session:
-        await asyncio.gather(*list(map(lambda x: x.wait_task, newlist_objs)))
-        logger.debug("等待完成")
-        await session.close()
+        async with session:
+            res = await asyncio.gather(
+                *list(map(lambda x: x.get_content(session), newlist_objs)),
+                return_exceptions=True,
+            )
+            logger.debug(f"获取公告内容完成，结果: {res}")
     return newlist_objs
 
 
@@ -341,7 +336,7 @@ async def get_new_news(news_list: list[NewsContent]) -> list[NewsContent]:
         )
         not in _cache_payload
     ]
-    
+
     _cache_payload = [
         NewsJsonIf(
             **{
