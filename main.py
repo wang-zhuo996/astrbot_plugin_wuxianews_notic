@@ -96,13 +96,17 @@ class WuxiaNewsNotic(Star):
             return
 
         for qq_group_id in self.config.subscribe:
-            await StarTools.send_message_by_id(
-                type="GroupMessage", id=qq_group_id, message_chain=msg_chain
-            )
-            self.logger.info(
-                f"发送公告到群：{qq_group_id}, 公告：{news.title} - {news.time}"
-            )
-
+            try:
+                await StarTools.send_message_by_id(
+                    type="GroupMessage", id=qq_group_id, message_chain=msg_chain
+                )
+                self.logger.info(
+                    f"发送公告到群：{qq_group_id}, 公告：{news.title} - {news.time}"
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"发送公告到群失败：{qq_group_id}, 公告：{news.title} - {news.time}, 错误：{e}"
+                )
     @filter.command("公告")
     async def news(self, event: AstrMessageEvent):
         """这是一个 获取公告 指令"""
